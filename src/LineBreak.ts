@@ -119,13 +119,17 @@ const HYPHEN = [HY, BA];
 
 export const codePointsToCharacterClasses = (
     codePoints: number[],
-    lineBreak: string = 'strict'
+    lineBreak: string = 'strict',
+    classModify?: (old:number, codePoint: number) => number
 ): [number[], number[], boolean[]] => {
     const types: number[] = [];
     const indices: number[] = [];
     const categories: boolean[] = [];
     codePoints.forEach((codePoint, index) => {
         let classType = UnicodeTrie.get(codePoint);
+        if (classModify) {
+            classType = classModify(classType, codePoint);
+        }
         if (classType > LETTER_NUMBER_MODIFIER) {
             categories.push(true);
             classType -= LETTER_NUMBER_MODIFIER;
@@ -541,13 +545,14 @@ export type WORD_BREAK = 'normal' | 'break-all' | 'break-word' | 'keep-all';
 interface IOptions {
     lineBreak?: LINE_BREAK;
     wordBreak?: WORD_BREAK;
+    classModify?: (originType: number, codePoint: number) => number;
 }
 
 const cssFormattedClasses = (codePoints: number[], options?: IOptions): [number[], number[], boolean[] | undefined] => {
     if (!options) {
         options = {lineBreak: 'normal', wordBreak: 'normal'};
     }
-    let [indicies, classTypes, isLetterNumber] = codePointsToCharacterClasses(codePoints, options.lineBreak);
+    let [indicies, classTypes, isLetterNumber] = codePointsToCharacterClasses(codePoints, options.lineBreak, options.classModify);
 
     if (options.wordBreak === 'break-all' || options.wordBreak === 'break-word') {
         classTypes = classTypes.map((type) => ([NU, AL, SA].indexOf(type) !== -1 ? ID : type));
